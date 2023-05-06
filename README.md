@@ -42,7 +42,7 @@
 
 <br>
 
-## 📰 ERD (예시)
+## 📰 Schema (예시)
 ![image](image/ERD_sample.png)
 
 <br>
