@@ -1,7 +1,6 @@
 # 2023_Port_Safety_Management_System
 
-### 🚢개요
-2023 스마트 해상물류 X ICT 멘토링 프로젝트 공모전을 위한 Repository 입니다.   
+### 🚢 2023 스마트 해상물류 X ICT 멘토링 프로젝트 공모전을 위한 Repository 입니다.   
 
 ⏺️ **주요 기능**
 -   CCTV를 통해 위험 구역 영상 획득 
@@ -16,19 +15,19 @@
 
 <br>
 
-### 🖥️ 개발 환경
+## 🖥️ 개발 환경
 |종류|환경|
 |--|--|
 |언어|Python|
 |프레임워크| |
-|서버|Amazon @@@|
+|서버|Amazon 
 |DB|MySQL 8.0, Amazon RDS|
 |IDE 및 Tool|IntelliJ IDEA, Visual Studio Code, MySQL Workbench|
-|API 및 라이브러리|@@@|
+|API 및 라이브러리| |
 
 <br>
 
-### 🤖 담당 역할
+## 🤖 담당 역할
 |담당|내용|
 |:--:|--|
 |윤동근<br>(Network)|   |
@@ -38,5 +37,20 @@
 
 <br>
 
-### 📆 프로젝트 수행 일정
+## 📆 프로젝트 수행 일정 (추후에 실제 진행했던 일정대로 표 수정 필요)
+![image](image/plan.png)
 
+<br>
+
+## 📰 ERD (예시)
+![image](image/ERD_sample.png)
+
+<br>
+
+## 📊 구성도 (예시)
+![image](image/Diagram_sample.png)
+
+<br>
+
+## 🏆 결과물 (예시)
+![image](image/Result_sample.png)
