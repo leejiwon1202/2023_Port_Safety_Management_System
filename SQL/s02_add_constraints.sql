@@ -1,0 +1,5 @@
+ALTER TABLE prj_db.info_port
+ADD CONSTRAINT CK_TYPE
+CHECK (situation_type in ('NORMAL', 'FIRE', 'INVASION', 'FALL', 'TRAFFIC'));
+
+# ALTER TABLE prj_db.info_port DROP CONSTRAINT CK_TYPE;
