@@ -6,9 +6,7 @@ fourcc = cv.VideoWriter_fourcc(*'mp4v')
 w=round(cap.get(cv.CAP_PROP_FRAME_WIDTH))
 h=round(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
 fps= 30
-out = cv.VideoWriter('/Users/yundong-geun/project/smart/'+
-                     '2023_Port_Safety_Management_System/NW/test.mp4'
-                     , fourcc, fps, (w,h))
+out = cv.VideoWriter('test.mp4', fourcc, fps, (w,h))
 queue_size = 90
 queue = []
 while cap.isOpened():
@@ -21,8 +19,12 @@ while cap.isOpened():
     queue.append(frame)
     if len(queue) > queue_size:
         queue.pop(0)
+        
     if cv.waitKey(1) == ord('q'):
         break
+    if cv.waitKey(1) == ord('s'):
+        for f in queue:
+            out.write(f)
     print(len(queue))
 
 out.release()
