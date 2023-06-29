@@ -1,14 +1,18 @@
 import cv2 as cv
-import numpy as np
+#import torch 
+""" import datetime """
 
 cap = cv.VideoCapture('rtmp://34.216.5.166:1935/live/0000')
 fourcc = cv.VideoWriter_fourcc(*'mp4v')
 w=round(cap.get(cv.CAP_PROP_FRAME_WIDTH))
 h=round(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
 fps= 30
-out = cv.VideoWriter('test.mp4', fourcc, fps, (w,h))
+out = cv.VideoWriter('output.mp4', fourcc, fps, (w,h))
 queue_size = 90
 queue = []
+
+#model=model()
+#model.load_state_dict(torch.load(./aaaa))
 while cap.isOpened():
     ret, frame = cap.read()
     # if frame is read correctly ret is True
@@ -27,6 +31,9 @@ while cap.isOpened():
             out.write(f)
     print(len(queue))
 
+""" current_time = datetime.datetime.now()
+formatted_time = current_time.strftime("%Y-%m-%d/%H:%M")
+ """
 out.release()
 cap.release()
 cv.destroyAllWindows()
