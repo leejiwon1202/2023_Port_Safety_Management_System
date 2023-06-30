@@ -4,10 +4,12 @@ import threading
 #import torch 
 
 
-
 fps= 30
-dst='./test.mp4'#저장 위치
-queue_size = 90
+dst='./test.mp4'    #저장 위치
+
+save_second=3   #몇초 저장할건지
+
+queue_size = save_second*30
 queue = []
 
 #model=model()
@@ -16,11 +18,12 @@ def imagemodel(model, cap):
     result=model(cap)
 
 def showNsave():
+    print("11111")
     cap = cv.VideoCapture('rtmp://34.216.5.166:1935/live/0000')
+    ret, frame = cap.read()
     fourcc = cv.VideoWriter_fourcc(*'mp4v')
-    w=round(cap.get(cv.CAP_PROP_FRAME_WIDTH))
-    h=round(cap.get(cv.CAP_PROP_FRAME_HEIGHT))
-    out = cv.VideoWriter(dst, fourcc, fps, (w,h))
+    out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[0], frame.shape[1]))
+    print("22222")
     while cap.isOpened():
         print("3333")
         ret, frame = cap.read()
