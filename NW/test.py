@@ -45,13 +45,13 @@ def showNsave():
             queue.pop(0)
         if cv.waitKey(1) == ord('q'):#여기는 시그널 처리 해줘야함
             break
-        if innerflag==0 and event_flag==1:#여기는 위험 신호 감지해서 저장하게 해야하고
+        if innerflag==0 and event_flag!=0:#여기는 위험 신호 감지해서 저장하게 해야하고
             innerflag=event_flag
             for f in queue:
                 out.write(f)
-        elif innerflag==1 and event_flag==1:
+        elif innerflag!=0 and event_flag!=0:
             out.write(frame)
-        elif innerflag==1 and event_flag==0:
+        elif innerflag!=0 and event_flag==0:
             innerflag=event_flag
         print(event_flag)
     out.release()
