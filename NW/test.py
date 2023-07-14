@@ -3,6 +3,7 @@ import numpy as np
 import threading
 import os
 import time
+import datetime
 #import torch 
 
 fps= 30
@@ -21,13 +22,13 @@ def flagcontrol():
     global event_flag
     while True:
         event_flag=0
-        time.sleep(5)
+        time.sleep(10)
         event_flag=1
-        time.sleep(5)
+        time.sleep(15)
         
 
 def showNsave():
-    cap = cv.VideoCapture('rtmp://3.35.25.173:1935/live/0000')
+    global cap
     ret, frame = cap.read()
     innerflag=0
     print(type(frame))
@@ -43,24 +44,34 @@ def showNsave():
         queue.append(frame)
         if len(queue) > queue_size:
             queue.pop(0)
-        if cv.waitKey(1) == ord('q'):#여기는 시그널 처리 해줘야함
-            break
         if innerflag==0 and event_flag!=0:#여기는 위험 신호 감지해서 저장하게 해야하고
             innerflag=event_flag
+            now = datetime.datetime.now()
+            date = now.strftime("%Y-%m-%d")
+            time = now.strftime("%Hh%Mm%Ss")
+            new_filename = f"{date}#{time}.mp4"
             for f in queue:
                 out.write(f)
         elif innerflag!=0 and event_flag!=0:
             out.write(frame)
         elif innerflag!=0 and event_flag==0:
             innerflag=event_flag
+            out.release()
+            os.rename("test.mp4", new_filename)
+            out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
         print(event_flag)
+        if (cv.waitKey(1)==27):
+            break
     out.release()
     cap.release()
+    os.rename("test.mp4", new_filename)
 
 S_S=threading.Thread(target=showNsave, args=())#show and save
 fctl=threading.Thread(target=flagcontrol, args=())
 fctl.daemon=True
 def main():
+    global cap
+    cap = cv.VideoCapture('rtmp://3.37.194.115:1935/live/0000')
     fctl.start()
     if os.path.exists(dst):
         os.remove(dst)
