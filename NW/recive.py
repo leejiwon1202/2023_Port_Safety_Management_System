@@ -5,7 +5,15 @@ import os
 import time
 import datetime
 #import torch 
+from upload import s3
+import firebase_admin
+from firebase_admin import credentials, db
 
+cred = credentials.Certificate("C:\Users\sjmama\sjmama-c1a00-firebase-adminsdk-bi9q1-50b5eea227")
+firebase_admin.initialize_app(cred,
+                              {'databaseURL' : 'https://console.firebase.google.com/u/0/project/sjmama-c1a00/database/sjmama-c1a00-default-rtdb/data/~2F?hl=ko'})
+datapath=''
+ref=db.reference('')
 fps= 30
 dst='test.mp4'    #저장 위치
 
@@ -35,7 +43,7 @@ def flagcontrol():
 
 def showNsave(cam_no):
     global cap
-    sdata=Sdata(0)
+    sdata=Sdata(cam_no)
     ret, frame = cap.read()
     innerflag=0
     print(type(frame))
@@ -52,7 +60,6 @@ def showNsave(cam_no):
         if len(queue) > queue_size:
             queue.pop(0)
         if innerflag==0 and event_flag!=0:#여기는 위험 신호 감지해서 저장하게 해야하고
-            sdata.cam_no=cam_no
             sdata.event_type=event_flag
             innerflag=event_flag
             now = datetime.datetime.now()
@@ -69,9 +76,11 @@ def showNsave(cam_no):
             innerflag=event_flag
             out.release()
             os.rename("test.mp4", new_filename)
-            #s3 여기서 저장
-            #여기서 linkstate넣어주고
-            #pymysql로 여기서 저장 하면됨
+            s3.upload_file(new_filename,"sjmama1",new_filename)
+            sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+new_filename
+            sdata_dict=sdata.__dict__
+            print(sdata_dict)
+            ref.push(sdata_dict)
             out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
             
         print(event_flag)
@@ -79,7 +88,6 @@ def showNsave(cam_no):
             break
     out.release()
     cap.release()
-    os.rename("test.mp4", new_filename)
 
 
 fctl=threading.Thread(target=flagcontrol, args=())
