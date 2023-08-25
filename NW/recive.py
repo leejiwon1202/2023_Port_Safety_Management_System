@@ -9,11 +9,11 @@ from upload import s3
 import firebase_admin
 from firebase_admin import credentials, db
 
-cred = credentials.Certificate("C:\Users\sjmama\sjmama-c1a00-firebase-adminsdk-bi9q1-50b5eea227")
+cred = credentials.Certificate("C:/Users/sjmama/ai-smartsafetysystem-firebase-adminsdk-5doyf-30cbb7476f.json")
 firebase_admin.initialize_app(cred,
-                              {'databaseURL' : 'https://console.firebase.google.com/u/0/project/sjmama-c1a00/database/sjmama-c1a00-default-rtdb/data/~2F?hl=ko'})
-datapath=''
-ref=db.reference('')
+                              {'databaseURL' : 'https://ai-smartsafetysystem-default-rtdb.firebaseio.com'})
+datapath='video'
+ref=db.reference(datapath)
 fps= 30
 dst='test.mp4'    #저장 위치
 
@@ -30,6 +30,8 @@ class Sdata:
         self.date=''
         self.time=''
         
+
+
         
 #model=model()
 #model.load_state_dict(torch.load(./aaaa))
@@ -37,16 +39,17 @@ def flagcontrol():
     global event_flag
     while True:
         event_flag=0
-        time.sleep(10)
+        time.sleep(5)
         event_flag=1
-        time.sleep(15)
+        time.sleep(2)
+        event_flag=2
+        time.sleep(2)
 
 def showNsave(cam_no):
     global cap
     sdata=Sdata(cam_no)
     ret, frame = cap.read()
     innerflag=0
-    print(type(frame))
     fourcc = cv.VideoWriter_fourcc(*'mp4v')
     out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
     while cap.isOpened():
@@ -60,6 +63,9 @@ def showNsave(cam_no):
         if len(queue) > queue_size:
             queue.pop(0)
         if innerflag==0 and event_flag!=0:#여기는 위험 신호 감지해서 저장하게 해야하고
+            print('1')
+            ref=db.reference('flag')
+            ref.set(event_flag)
             sdata.event_type=event_flag
             innerflag=event_flag
             now = datetime.datetime.now()
@@ -72,18 +78,24 @@ def showNsave(cam_no):
                 out.write(f)
         elif innerflag!=0 and event_flag!=0:
             out.write(frame)
+            ref=db.reference('flag')
+            ref.set(event_flag)
         elif innerflag!=0 and event_flag==0:
+            print('0')
+            ref=db.reference('flag')
+            ref.set(event_flag)
             innerflag=event_flag
             out.release()
             os.rename("test.mp4", new_filename)
             s3.upload_file(new_filename,"sjmama1",new_filename)
+            print('s3 upload!')
             sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+new_filename
             sdata_dict=sdata.__dict__
             print(sdata_dict)
+            ref=db.reference('video')
             ref.push(sdata_dict)
+            print('firebase push!')
             out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
-            
-        print(event_flag)
         if (cv.waitKey(1)==27):
             break
     out.release()
@@ -95,13 +107,13 @@ fctl.daemon=True
 def main():
     global cap
     cam_no='0000'
-    cap = cv.VideoCapture('rtmp://3.37.194.115:1935/live/'+cam_no)
-    S_S=threading.Thread(target=showNsave, args=(cam_no))#show and save
+    cap = cv.VideoCapture('rtmp://15.164.61.152:1935/live/'+cam_no)
+    S_S=threading.Thread(target=showNsave, args=(cam_no,))#show and save
     fctl.start()
     if os.path.exists(dst):
         os.remove(dst)
     S_S.start()
-    
+    S_S.join()
     cv.destroyAllWindows()
 
 if __name__ == "__main__":
