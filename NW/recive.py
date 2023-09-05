@@ -53,14 +53,18 @@ def showNsave(cam_no):
     ret, frame = cap.read()
     innerflag=0
     fourcc = cv.VideoWriter_fourcc(*'mp4v')
+    frameshm=shared_memory.SharedMemory(create=True, size=frame.nbytes)
+    print(frameshm.name)
     out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
     while cap.isOpened():
         ret, frame = cap.read()
+        sharedframe=np.ndarray(frame.shape, dtype=frame.dtype, buffer=frameshm.buf)
+        sharedframe[:]=frame[:]
         # if frame is read correctly ret is True
         if not ret:
             print("Can't receive frame (stream end?). Exiting ...")
             break
-        cv.imshow('frame', frame)
+        #cv.imshow('frame', frame)
         queue.append(frame)
         if len(queue) > queue_size:
             queue.pop(0)
@@ -94,9 +98,10 @@ def showNsave(cam_no):
             sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+new_filename
             sdata_dict=sdata.__dict__
             print(sdata_dict)
-            ref=db.reference('video')
+            ref=db.reference('video')#저장한 파일은 삭제
             ref.push(sdata_dict)
             print('firebase push!')
+            os.remove(new_filename)
             out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
         if (cv.waitKey(1)==27):
             break
@@ -109,7 +114,7 @@ fctl.daemon=True
 def main():
     global cap
     cam_no='0000'
-    cap = cv.VideoCapture('rtmp://15.164.61.152:1935/live/'+cam_no)
+    cap = cv.VideoCapture('rtmp://3.38.100.84:1935/live/'+cam_no)
     S_S=threading.Thread(target=showNsave, args=(cam_no,))#show and save
     fctl.start()
     if os.path.exists(dst):
