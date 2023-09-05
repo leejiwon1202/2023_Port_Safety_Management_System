@@ -8,6 +8,8 @@ import datetime
 from upload import s3
 import firebase_admin
 from firebase_admin import credentials, db
+import multiprocessing as mp
+from multiprocessing import shared_memory
 
 cred = credentials.Certificate("C:/Users/sjmama/ai-smartsafetysystem-firebase-adminsdk-5doyf-30cbb7476f.json")
 firebase_admin.initialize_app(cred,
