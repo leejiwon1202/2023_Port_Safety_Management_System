@@ -4,7 +4,6 @@ import threading
 import os
 import time
 import datetime
-#import torch 
 from upload import s3
 import firebase_admin
 from firebase_admin import credentials, db
@@ -14,6 +13,7 @@ from multiprocessing import shared_memory
 cred = credentials.Certificate("C:/Users/sjmama/ai-smartsafetysystem-firebase-adminsdk-5doyf-30cbb7476f.json")
 firebase_admin.initialize_app(cred,
                               {'databaseURL' : 'https://ai-smartsafetysystem-default-rtdb.firebaseio.com'})
+
 datapath='video'
 ref=db.reference(datapath)
 fps= 30
@@ -32,20 +32,28 @@ class Sdata:
         self.date=''
         self.time=''
         
-
-
-        
-#model=model()
-#model.load_state_dict(torch.load(./aaaa))
 def flagcontrol():
     global event_flag
     while True:
         event_flag=0
-        time.sleep(5)
+        time.sleep(10)
         event_flag=1
-        time.sleep(2)
+        time.sleep(10)
         event_flag=2
-        time.sleep(2)
+        time.sleep(5)
+        
+def Vsave(sdata, filename):
+    ref=db.reference('flag')
+    ref.set(event_flag)
+    s3.upload_file(filename,"sjmama1",filename)
+    print('s3 upload!')
+    sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+filename
+    sdata_dict=sdata.__dict__
+    print(sdata_dict)
+    ref=db.reference('video')#저장한 파일은 삭제
+    ref.push(sdata_dict)
+    print('firebase push!')
+    os.remove(filename)
 
 def showNsave(cam_no):
     global cap
@@ -69,7 +77,7 @@ def showNsave(cam_no):
         if len(queue) > queue_size:
             queue.pop(0)
         if innerflag==0 and event_flag!=0:#여기는 위험 신호 감지해서 저장하게 해야하고
-            print('1')
+            print(event_flag)
             ref=db.reference('flag')
             ref.set(event_flag)
             sdata.event_type=event_flag
@@ -84,24 +92,31 @@ def showNsave(cam_no):
                 out.write(f)
         elif innerflag!=0 and event_flag!=0:
             out.write(frame)
-            ref=db.reference('flag')
-            ref.set(event_flag)
+            if (innerflag != event_flag) :
+                innerflag=event_flag
+                print(event_flag)
+                ref=db.reference('flag')
+                ref.set(event_flag)
         elif innerflag!=0 and event_flag==0:
-            print('0')
-            ref=db.reference('flag')
-            ref.set(event_flag)
-            innerflag=event_flag
+            print(event_flag)
             out.release()
             os.rename("test.mp4", new_filename)
-            s3.upload_file(new_filename,"sjmama1",new_filename)
-            print('s3 upload!')
-            sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+new_filename
-            sdata_dict=sdata.__dict__
-            print(sdata_dict)
-            ref=db.reference('video')#저장한 파일은 삭제
-            ref.push(sdata_dict)
-            print('firebase push!')
-            os.remove(new_filename)
+            Vsaveth=threading.Thread(target=Vsave, args=(sdata, new_filename))
+            Vsaveth.start()
+            innerflag=event_flag
+            # ref=db.reference('flag')
+            # ref.set(event_flag)
+            # innerflag=event_flag
+            # out.release()
+            # os.rename("test.mp4", new_filename)
+            # s3.upload_file(new_filename,"sjmama1",new_filename)
+            # print('s3 upload!')
+            # sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+new_filename
+            # sdata_dict=sdata.__dict__
+            # print(sdata_dict)
+            # ref=db.reference('video')#저장한 파일은 삭제
+            # ref.push(sdata_dict)
+            # print('firebase push!')
             out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
         if (cv.waitKey(1)==27):
             break

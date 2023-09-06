@@ -3,9 +3,9 @@ import numpy as np
 import multiprocessing as mp
 from multiprocessing import shared_memory
 
-cap = cv.VideoCapture('./2023-09-05#16h31m54s.mp4')
+cap = cv.VideoCapture('./2023-09-05#17h42m12s.mp4')
 ret, frame = cap.read() #동영상 정보 읽어오기 -read
-frameshm= shared_memory.SharedMemory(name= 'wnsm_99b41af1')
+frameshm= shared_memory.SharedMemory(name= 'wnsm_2e5ebdd5')
 # while 1:
 #     ret, frame=cap.read()
 #     
