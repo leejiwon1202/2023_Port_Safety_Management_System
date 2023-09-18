@@ -19,7 +19,9 @@ ref=db.reference(datapath)
 fps= 30
 dst='test.mp4'    #저장 위치
 
-event_flag=0
+
+event_flag=np.array([0])
+
 save_second=3   #몇초 저장할건지
 
 queue_size = save_second*30
@@ -32,22 +34,28 @@ class Sdata:
         self.date=''
         self.time=''
         
-def flagcontrol():
-    global event_flag
-    while True:
-        event_flag=0
-        time.sleep(10)
-        event_flag=1
-        time.sleep(10)
-        event_flag=2
-        time.sleep(5)
+# def flagcontrol():
+    # sevent_flag=np.array([0])
+    # print(sevent_flag.nbytes)
+    # flagshm=shared_memory.SharedMemory(create=True, size=sevent_flag.nbytes)
+    # print('flag= '+flagshm.name)
+    # event_flag = np.ndarray(sevent_flag.shape, dtype=sevent_flag.dtype, buffer=flagshm.buf)
+    # event_flag[:]=sevent_flag[:]
+    # while True:
+    #     event_flag=0
+    #     time.sleep(10)
+    #     event_flag=1
+    #     time.sleep(10)
+    #     event_flag=2
+    #     time.sleep(5)
         
 def Vsave(sdata, filename):
+    global event_flag
     ref=db.reference('flag')
-    ref.set(event_flag)
+    ref.set(str(event_flag[0]))
     s3.upload_file(filename,"sjmama1",filename)
     print('s3 upload!')
-    sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+filename
+    sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+sdata.date+'%'+sdata.date[2:4]+sdata.time+'.mp4'
     sdata_dict=sdata.__dict__
     print(sdata_dict)
     ref=db.reference('video')#저장한 파일은 삭제
@@ -57,12 +65,20 @@ def Vsave(sdata, filename):
 
 def showNsave(cam_no):
     global cap
+    global event_flag
+    sevent_flag=np.array([0])
+    print(sevent_flag.nbytes)
+    flagshm=shared_memory.SharedMemory(create=True, size=sevent_flag.nbytes)
+    print('flag= '+flagshm.name)
+    event_flag = np.ndarray(sevent_flag.shape, dtype=sevent_flag.dtype, buffer=flagshm.buf)
+    event_flag[:]=sevent_flag[:]
     sdata=Sdata(cam_no)
     ret, frame = cap.read()
     innerflag=0
+    print(frame.shape, frame.dtype)
     fourcc = cv.VideoWriter_fourcc(*'mp4v')
     frameshm=shared_memory.SharedMemory(create=True, size=frame.nbytes)
-    print(frameshm.name)
+    print('frame= '+frameshm.name)
     out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
     while cap.isOpened():
         ret, frame = cap.read()
@@ -76,34 +92,31 @@ def showNsave(cam_no):
         queue.append(frame)
         if len(queue) > queue_size:
             queue.pop(0)
-        if innerflag==0 and event_flag!=0:#여기는 위험 신호 감지해서 저장하게 해야하고
-            print(event_flag)
+        if innerflag==0 and event_flag[0]!=0:#여기는 위험 신호 감지해서 저장하게 해야하고
+            print(event_flag[0])
             ref=db.reference('flag')
-            ref.set(event_flag)
-            sdata.event_type=event_flag
-            innerflag=event_flag
+            ref.set(str(event_flag[0]))
+            sdata.event_type=str(event_flag[0])
+            innerflag=event_flag[0]
             now = datetime.datetime.now()
             sdata.date=now.strftime("%Y-%m-%d")
             sdata.time=now.strftime("%Hh%Mm%Ss")
-            date = now.strftime("%Y-%m-%d")
-            time = now.strftime("%Hh%Mm%Ss")
-            new_filename = f"{date}#{time}.mp4"
+            new_filename = f"{sdata.date}#{sdata.time}.mp4"
             for f in queue:
                 out.write(f)
-        elif innerflag!=0 and event_flag!=0:
+        elif innerflag!=0 and event_flag[0]!=0:
             out.write(frame)
-            if (innerflag != event_flag) :
-                innerflag=event_flag
-                print(event_flag)
+            if (innerflag != event_flag[0]) :
+                innerflag=event_flag[0]
                 ref=db.reference('flag')
-                ref.set(event_flag)
-        elif innerflag!=0 and event_flag==0:
-            print(event_flag)
+                ref.set(str(event_flag[0]))
+        elif innerflag!=0 and event_flag[0]==0:
+            print(event_flag[0])
             out.release()
             os.rename("test.mp4", new_filename)
             Vsaveth=threading.Thread(target=Vsave, args=(sdata, new_filename))
             Vsaveth.start()
-            innerflag=event_flag
+            innerflag=event_flag[0]
             # ref=db.reference('flag')
             # ref.set(event_flag)
             # innerflag=event_flag
@@ -118,20 +131,19 @@ def showNsave(cam_no):
             # ref.push(sdata_dict)
             # print('firebase push!')
             out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
-        if (cv.waitKey(1)==27):
-            break
+        
     out.release()
     cap.release()
 
 
-fctl=threading.Thread(target=flagcontrol, args=())
-fctl.daemon=True
+# fctl=threading.Thread(target=flagcontrol, args=())
+# fctl.daemon=True
 def main():
     global cap
     cam_no='0000'
     cap = cv.VideoCapture('rtmp://3.38.100.84:1935/live/'+cam_no)
     S_S=threading.Thread(target=showNsave, args=(cam_no,))#show and save
-    fctl.start()
+    # fctl.start()
     if os.path.exists(dst):
         os.remove(dst)
     S_S.start()

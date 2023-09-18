@@ -1,152 +1,63 @@
-import cv2 as cv
+from ultralytics import YOLO
+import cv2
 import numpy as np
-import threading
-import os
-import time
-import datetime
-from upload import s3
-import firebase_admin
-from firebase_admin import credentials, db
-import multiprocessing as mp
 from multiprocessing import shared_memory
 
-cred = credentials.Certificate("C:/Users/sjmama/ai-smartsafetysystem-firebase-adminsdk-5doyf-30cbb7476f.json")
-firebase_admin.initialize_app(cred,
-                              {'databaseURL' : 'https://ai-smartsafetysystem-default-rtdb.firebaseio.com'})
+flag=np.array([0])
+flagshm= shared_memory.SharedMemory(name= 'wnsm_9400e8a0')#flag 주소
+flag = np.ndarray(flag.shape, dtype=flag.dtype, buffer=flagshm.buf)
 
-datapath='video'
-ref=db.reference(datapath)
-fps= 30
-dst='test.mp4'    #저장 위치
+frameshm= shared_memory.SharedMemory(name= 'wnsm_97d54b24')#frame주소
+cap = cv2.VideoCapture('./2023-09-05#17h42m12s.mp4')
+ret, frame = cap.read() #동영상 정보 읽어오기 -read
+frame = np.ndarray((800, 1280, 3), dtype=frame.dtype, buffer=frameshm.buf)
 
+def getIntersectionArea(boxA, boxB):
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+    return (xB - xA + 1) * (yB - yA + 1)
 
-event_flag=np.array([0])
+coord_list = []
 
-save_second=3   #몇초 저장할건지
+person_model = YOLO("./weights/person.pt")
+door_model = YOLO("./weights/door.pt")
 
-queue_size = save_second*30
-queue = []
-class Sdata:
-    def __init__(self, cam_no):
-        self.cam_no=cam_no
-        self.event_type=0
-        self.link_storage=''
-        self.date=''
-        self.time=''
-        
-def flagcontrol():
-    sevent_flag=np.array([0])
-    print(sevent_flag.nbytes)
-    flagshm=shared_memory.SharedMemory(create=True, size=sevent_flag.nbytes)
-    print('flag= '+flagshm.name)
-    event_flag = np.ndarray(sevent_flag.shape, dtype=sevent_flag.dtype, buffer=flagshm.buf)
-    event_flag[:]=sevent_flag[:]
-    while True:
-        print(event_flag)
-        time.sleep(1)
-    # while True:
-    #     event_flag=0
-    #     time.sleep(10)
-    #     event_flag=1
-    #     time.sleep(10)
-    #     event_flag=2
-    #     time.sleep(5)
-        
-def Vsave(sdata, filename):
-    global event_flag
-    ref=db.reference('flag')
-    ref.set(event_flag[0])
-    s3.upload_file(filename,"sjmama1",filename)
-    print('s3 upload!')
-    sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+sdata.date+'%'+sdata.date[2:4]+sdata.time+'.mp4'
-    sdata_dict=sdata.__dict__
-    print(sdata_dict)
-    ref=db.reference('video')#저장한 파일은 삭제
-    ref.push(sdata_dict)
-    print('firebase push!')
-    os.remove(filename)
-
-def showNsave(cam_no):
-    global cap
-    global event_flag
-    print(event_flag)
-    sdata=Sdata(cam_no)
-    ret, frame = cap.read()
-    innerflag=0
-    fourcc = cv.VideoWriter_fourcc(*'mp4v')
-    frameshm=shared_memory.SharedMemory(create=True, size=frame.nbytes)
-    print('frame= '+frameshm.name)
-    out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
-    while cap.isOpened():
-        ret, frame = cap.read()
-        sharedframe=np.ndarray(frame.shape, dtype=frame.dtype, buffer=frameshm.buf)
-        sharedframe[:]=frame[:]
-        # if frame is read correctly ret is True
-        if not ret:
-            print("Can't receive frame (stream end?). Exiting ...")
+while True:
+    #ret, frame = cap.read() # 여기서 프레임을 받아옴
+    fakeflag=0
+    if ret:
+        coord_list = []
+        for coord in person_model.predict(frame)[0].boxes:
+            x, y, w, h = coord.xywh[0][:]
+            xmin, ymin, xmax, ymax = int(x-w/2), int(y-h/2), int(x+w/2), int(y+h/2)
+            cv2.rectangle(frame, (xmin, ymin, xmax, ymax), (0, 0, 255), 4) # 삭제해도 됨
+            coord_list.append([xmin, ymin, xmax, ymax])
             break
-        #cv.imshow('frame', frame)
-        queue.append(frame)
-        if len(queue) > queue_size:
-            queue.pop(0)
-        if innerflag==0 and event_flag[0]!=0:#여기는 위험 신호 감지해서 저장하게 해야하고
-            print(event_flag[0])
-            ref=db.reference('flag')
-            ref.set(event_flag[0])
-            sdata.event_type=event_flag[0]
-            innerflag=event_flag[0]
-            now = datetime.datetime.now()
-            sdata.date=now.strftime("%Y-%m-%d")
-            sdata.time=now.strftime("%Hh%Mm%Ss")
-            new_filename = f"{sdata.date}#{sdata.time}.mp4"
-            for f in queue:
-                out.write(f)
-        elif innerflag!=0 and event_flag[0]!=0:
-            out.write(frame)
-            if (innerflag != event_flag[0]) :
-                innerflag=event_flag[0]
-                print(event_flag[0])
-                ref=db.reference('flag')
-                ref.set(event_flag[0])
-        elif innerflag!=0 and event_flag[0]==0:
-            print(event_flag[0])
-            out.release()
-            os.rename("test.mp4", new_filename)
-            Vsaveth=threading.Thread(target=Vsave, args=(sdata, new_filename))
-            Vsaveth.start()
-            innerflag=event_flag[0]
-            # ref=db.reference('flag')
-            # ref.set(event_flag)
-            # innerflag=event_flag
-            # out.release()
-            # os.rename("test.mp4", new_filename)
-            # s3.upload_file(new_filename,"sjmama1",new_filename)
-            # print('s3 upload!')
-            # sdata.link_storage='https://sjmama1.s3.ap-northeast-2.amazonaws.com/'+new_filename
-            # sdata_dict=sdata.__dict__
-            # print(sdata_dict)
-            # ref=db.reference('video')#저장한 파일은 삭제
-            # ref.push(sdata_dict)
-            # print('firebase push!')
-            out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
+            
+        for coord in door_model.predict(frame)[0].boxes:
+            x, y, w, h = coord.xywh[0][:]
+            xmin, ymin, xmax, ymax = int(x-w/2), int(y-h/2), int(x+w/2), int(y+h/2)
+            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (255, 0, 0), 4) # 삭제해도 됨
+            coord_list.append([xmin, ymin, xmax, ymax])
         
-    out.release()
-    cap.release()
+        distance = 0
+        for i in range(len(coord_list) - 1): 
+            for j in range(i+1, len(coord_list)):
+                area = getIntersectionArea(coord_list[i], coord_list[j])
+            if area > 0:
+                # 여기서 신호 보내면 됨
+                fakeflag=2
+                cv2.putText(frame, "WARNING!!", (50, 100), 1, 3, (0, 0, 255), 5, cv2.LINE_AA) # 삭제해도 됨
+                break
+            else:
+                fakeflag=0
+        flag[0]=fakeflag
+        cv2.imshow("frame", frame) # 삭제해도 됨
 
-
-fctl=threading.Thread(target=flagcontrol, args=())
-fctl.daemon=True
-def main():
-    global cap
-    cam_no='0000'
-    cap = cv.VideoCapture('rtmp://3.38.100.84:1935/live/'+cam_no)
-    S_S=threading.Thread(target=showNsave, args=(cam_no,))#show and save
-    fctl.start()
-    if os.path.exists(dst):
-        os.remove(dst)
-    S_S.start()
-    S_S.join()
-    cv.destroyAllWindows()
-
-if __name__ == "__main__":
-    main()
+        if cv2.waitKey(10) == 27: # 삭제해도 됨
+            break # 삭제해도 됨
+    
+cap.release() # 삭제해도 됨
+cv2.destroyAllWindows() # 삭제해도 됨

@@ -14,8 +14,3 @@ def s3_connection():
         print("s3 bucket connected!")
         return s3
 s3=s3_connection()
-
-try:
-    s3.upload_file("2023-07-15#04h08m25s.mp4","sjmama1","2023-07-15#04h08m25s.mp4")
-except Exception as e:
-    print(e)

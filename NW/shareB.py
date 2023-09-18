@@ -1,7 +1,8 @@
 import numpy as np
 from multiprocessing import shared_memory
+a=np.array([0,1,2,3,4])
+shm= shared_memory.SharedMemory(name= 'wnsm_b3352210')
 
-shm= shared_memory.SharedMemory(name= 'psm_a6365a64')
+x=np.ndarray(a.shape, dtype=a.dtype, buffer=shm.buf)
 
-x=np.ndarray((6,), dtype=np.int64, buffer=shm)
 print(x)
