@@ -95,7 +95,10 @@ def showNsave(cam_no):
         if innerflag==0 and event_flag[0]!=0:#여기는 위험 신호 감지해서 저장하게 해야하고
             print(event_flag[0])
             ref=db.reference('flag')
-            ref.set(str(event_flag[0]))
+            if event_flag[0]==12:
+                ref.set(str(2))
+            else:
+                ref.set(str(event_flag[0]))
             sdata.event_type=str(event_flag[0])
             innerflag=event_flag[0]
             now = datetime.datetime.now()
@@ -109,7 +112,10 @@ def showNsave(cam_no):
             if (innerflag != event_flag[0]) :
                 innerflag=event_flag[0]
                 ref=db.reference('flag')
-                ref.set(str(event_flag[0]))
+                if event_flag[0]==12:
+                    ref.set(str(2))
+                else:
+                    ref.set(str(event_flag[0]))
         elif innerflag!=0 and event_flag[0]==0:
             print(event_flag[0])
             out.release()

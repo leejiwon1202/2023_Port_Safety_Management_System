@@ -46,7 +46,6 @@ cap = cv2.VideoCapture(0)
 
 queue_size = 90
 queue = []
-flag = 0
 
 while True:
     #image.flags.writeable = False
@@ -72,9 +71,15 @@ while True:
         input = input.unsqueeze(0)
         out = model(input)
         if out > 2.5:
-            flag = 1
+            if (flag[0]/10)==1:
+                flag[0] = flag[0]
+            else:
+                flag[0]=flag[0]+10
         else:
-            flag = 0
+            if (flag[0]/10)==1:
+                flag[0] = flag[0]-10
+            else:
+                flag[0]=flag[0]
         print(flag)
         queue.pop(0)
     
