@@ -6,7 +6,7 @@ import torch
 from multiprocessing import shared_memory
 import sys
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 flag=np.array([0])
 #flagshm= shared_memory.SharedMemory(name= 'wnsm_53b3c5b4')#flag 주소
@@ -44,7 +44,7 @@ input_size = 132
 num_layers = 2
 hidden_size = 8
 model = GRU(input_size = input_size, hidden_size = hidden_size, sequence_length = sequence_length, num_layers = num_layers, device = device).to(device)
-model.load_state_dict(torch.load(f=r'C:\Users\mkjsy\Desktop\YM\Source Code\VSCode\SHM\My\savepoint1238.pth'))
+model.load_state_dict(torch.load(f=r'C:\Users\sjmama\2023_Port_Safety_Management_System\NW\savepoint1238.pth'))
 
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(static_image_mode = True, min_detection_confidence = 0.1, model_complexity = 2)

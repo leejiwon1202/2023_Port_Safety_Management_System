@@ -33,5 +33,5 @@ while IFS= read -r line; do
     esac
 done < "$file_path"
 python test.py $shape $flag $frame
-python lee.py $shape $flag $frame &
-# python jun.py $shape $flag $frame &
+#python lee.py $shape $flag $frame &
+python jun.py $shape $flag $frame &

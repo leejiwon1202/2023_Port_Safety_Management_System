@@ -9,6 +9,7 @@ import firebase_admin
 from firebase_admin import credentials, db
 import multiprocessing as mp
 from multiprocessing import shared_memory
+import sys
 
 cred = credentials.Certificate("C:/Users/sjmama/ai-smartsafetysystem-firebase-adminsdk-5doyf-30cbb7476f.json")
 firebase_admin.initialize_app(cred,
@@ -17,7 +18,7 @@ firebase_admin.initialize_app(cred,
 datapath='video'
 ref=db.reference(datapath)
 fps= 30
-dst='test.mp4'    #저장 위치
+dst='./test.mp4'    #저장 위치
 
 
 event_flag=np.array([0])
@@ -66,18 +67,23 @@ def Vsave(sdata, filename):
 def showNsave(cam_no):
     global cap
     global event_flag
+    ret, frame = cap.read()
+    ref=db.reference('flag')
+    ref.set(str('0'))
+    os.system('echo '+str(frame.shape).replace(' ', '')+' > info.txt')
     sevent_flag=np.array([0])
     print(sevent_flag.nbytes)
     flagshm=shared_memory.SharedMemory(create=True, size=sevent_flag.nbytes)
     print('flag= '+flagshm.name)
+    os.system('echo '+flagshm.name+' >> info.txt')
     event_flag = np.ndarray(sevent_flag.shape, dtype=sevent_flag.dtype, buffer=flagshm.buf)
     event_flag[:]=sevent_flag[:]
     sdata=Sdata(cam_no)
-    ret, frame = cap.read()
     innerflag=0
     print(frame.shape, frame.dtype)
     fourcc = cv.VideoWriter_fourcc(*'mp4v')
     frameshm=shared_memory.SharedMemory(create=True, size=frame.nbytes)
+    os.system('echo '+frameshm.name+' >> info.txt')
     print('frame= '+frameshm.name)
     out = cv.VideoWriter(dst, fourcc, fps, (frame.shape[1], frame.shape[0]))
     while cap.isOpened():
