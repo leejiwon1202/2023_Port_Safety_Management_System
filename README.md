@@ -17,11 +17,11 @@
 |종류|환경|
 |--|--|
 |언어|Python|
-|프레임워크| |
-|서버|Amazon 
-|DB|MySQL 8.0, Amazon RDS|
+|프레임워크|Vue.js, Docker|
+|서버|AWS|
+|DB|MySQL 8.0, AWS RDS|
 |IDE 및 Tool|IntelliJ IDEA, Visual Studio Code, MySQL Workbench|
-|API 및 라이브러리| |
+|API 및 라이브러리|Pytorch, OpenCV, 공공데이터포털|
 
 <br>
 
